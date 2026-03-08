@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-TeeTimer - Automated tee time booking for The Hills Country Club (Invited Clubs)
+TeeTimer - Automated tee time booking for Acme Club member portal
 """
 
 import json
@@ -116,7 +116,7 @@ class TeeTimer:
             logger.info("Start time already passed, beginning immediately")
 
     def login(self) -> bool:
-        """Log in to the Invited Clubs member portal."""
+        """Log in to the Acme Club member portal."""
         logger.info("Navigating to login page...")
         self.driver.get(self.config['urls']['login'])
 
@@ -895,84 +895,148 @@ class TeeTimer:
         logger.info(f"Filling in {len(players)} additional player(s)...")
 
         try:
-            time.sleep(1)
+            # Wait for the booking form to fully load
+            time.sleep(2)
 
-            # Debug: find all select elements to understand the form structure
+            # The booking form appears inline when clicking reserve button
+            # Look for the expanded reservation form
+            # It contains rows with Player, Player Type, Player Name, Player Email
+
+            # Find the booking form area - look for container with player dropdowns
+            booking_form = None
+            form_selectors = [
+                "//div[contains(@class, 'reservation') or contains(@class, 'booking')]",
+                "//table[.//th[contains(text(), 'Player')]]",
+                "//table[.//td[contains(text(), 'Player Type')]]",
+                "//div[.//select]//ancestor::div[contains(@class, 'expand') or contains(@class, 'detail')]",
+                "//tr[.//select]/ancestor::table[1]",
+            ]
+
+            for selector in form_selectors:
+                try:
+                    forms = self.driver.find_elements(By.XPATH, selector)
+                    for form in forms:
+                        selects = form.find_elements(By.TAG_NAME, "select")
+                        if len(selects) > 0:
+                            booking_form = form
+                            logger.info(f"Found booking form with {len(selects)} selects")
+                            break
+                    if booking_form:
+                        break
+                except:
+                    continue
+
+            # Debug: find all select elements
             all_selects = self.driver.find_elements(By.TAG_NAME, "select")
-            logger.info(f"Found {len(all_selects)} select elements on booking form")
+            logger.info(f"Found {len(all_selects)} total select elements on page")
 
-            # The form typically has pairs of dropdowns for each player row:
-            # - Player Type (Member/Guest/etc)
-            # - Player Name
+            # Show select elements for debugging
+            for idx, sel in enumerate(all_selects):
+                try:
+                    sel_id = sel.get_attribute('id') or ''
+                    sel_name = sel.get_attribute('name') or ''
+                    options = Select(sel).options
+                    first_opts = [o.text[:20] for o in options[:3]]
+                    logger.info(f"  Select {idx}: id='{sel_id}' name='{sel_name}' opts={first_opts}")
+                except:
+                    pass
+
+            # Find rows with select elements (these are likely player rows)
+            rows_with_selects = self.driver.find_elements(By.XPATH, "//tr[.//select]")
+            logger.info(f"Found {len(rows_with_selects)} rows with select elements")
 
             # For each additional player (starting at player 2)
+            # Player 1 is auto-filled, so we need to fill players 2, 3, 4...
+            # The rows_with_selects contains all player rows with dropdowns
             for i, player_name in enumerate(players, start=2):
                 logger.info(f"  Adding player {i}: {player_name}")
 
-                # Find the row for this player - look for row with number "2", "3", etc.
+                # Find the row for this player
+                # rows_with_selects[0] is player 1 (auto-filled)
+                # rows_with_selects[1] is player 2, etc.
                 player_row = None
-                try:
-                    # The row has a td with just the player number
-                    player_row = self.driver.find_element(
-                        By.XPATH,
-                        f"//tr[.//td[normalize-space(text())='{i}']]"
-                    )
-                    logger.info(f"    Found row for player {i}")
-                except NoSuchElementException:
-                    logger.warning(f"    Could not find row for player {i}")
+                row_index = i - 1  # Convert to 0-based index
 
-                # Select Player Type = "Member"
-                try:
-                    if player_row:
-                        # Find first select in this row (should be Player Type)
-                        selects_in_row = player_row.find_elements(By.TAG_NAME, "select")
-                        if len(selects_in_row) >= 1:
-                            type_dropdown = selects_in_row[0]
-                            select = Select(type_dropdown)
-                            # Select "Member"
-                            for option in select.options:
-                                if 'member' in option.text.lower():
-                                    select.select_by_visible_text(option.text)
-                                    logger.info(f"    Selected type: {option.text}")
-                                    break
-                            time.sleep(0.5)
-                except Exception as e:
-                    logger.debug(f"    Could not select player type: {e}")
-
-                # Select Player Name
-                try:
-                    name_dropdown = None
-                    if player_row:
-                        # Second dropdown in row is usually name
-                        dropdowns = player_row.find_elements(By.XPATH, ".//select")
-                        if len(dropdowns) >= 2:
-                            name_dropdown = dropdowns[1]
-                    else:
-                        # Find by name attribute
-                        name_dropdowns = self.driver.find_elements(
+                if row_index < len(rows_with_selects):
+                    player_row = rows_with_selects[row_index]
+                    row_text = player_row.text[:50].replace('\n', ' ') if player_row.text else ''
+                    logger.info(f"    Using row {row_index}: '{row_text}...'")
+                else:
+                    # Try finding by player number in the row
+                    try:
+                        player_row = self.driver.find_element(
                             By.XPATH,
-                            "//select[contains(@name, 'name') or contains(@name, 'Name') or contains(@name, 'Player')]"
+                            f"//tr[.//td[normalize-space(text())='{i}']]"
                         )
-                        # Filter to ones that contain member names
-                        for dd in name_dropdowns:
-                            options = Select(dd).options
-                            if any(player_name.lower() in opt.text.lower() for opt in options):
-                                name_dropdown = dd
+                        logger.info(f"    Found row by player number {i}")
+                    except NoSuchElementException:
+                        pass
+
+                if not player_row:
+                    logger.warning(f"    Could not find row for player {i}")
+                    continue
+
+                # Find selects in this row
+                selects_in_row = player_row.find_elements(By.TAG_NAME, "select")
+                logger.info(f"    Found {len(selects_in_row)} selects in row")
+
+                # Select Player Type = "Member" (first dropdown)
+                if len(selects_in_row) >= 1:
+                    try:
+                        type_dropdown = selects_in_row[0]
+                        select = Select(type_dropdown)
+                        logger.info(f"    Type dropdown options: {[o.text for o in select.options]}")
+                        # Select "Member"
+                        for option in select.options:
+                            if 'member' in option.text.lower():
+                                select.select_by_visible_text(option.text)
+                                logger.info(f"    Selected type: {option.text}")
                                 break
+                        time.sleep(1)  # Wait for name dropdown to populate
+                    except Exception as e:
+                        logger.warning(f"    Could not select player type: {e}")
+
+                # Select Player Name (second dropdown, may need to re-find after type selection)
+                try:
+                    # Re-find selects in case they were dynamically updated
+                    selects_in_row = player_row.find_elements(By.TAG_NAME, "select")
+                    logger.info(f"    After type selection, found {len(selects_in_row)} selects")
+
+                    name_dropdown = None
+                    if len(selects_in_row) >= 2:
+                        name_dropdown = selects_in_row[1]
+                    elif len(selects_in_row) == 1:
+                        # Maybe type and name are the same dropdown, or name comes after
+                        # Try finding the next select in the row
+                        name_dropdown = selects_in_row[0]
 
                     if name_dropdown:
                         select = Select(name_dropdown)
+                        options_text = [o.text for o in select.options[:10]]
+                        logger.info(f"    Name dropdown options (first 10): {options_text}")
+
                         # Try exact match first
-                        try:
-                            select.select_by_visible_text(player_name)
-                        except NoSuchElementException:
-                            # Try partial match
+                        found = False
+                        for option in select.options:
+                            if player_name.lower() == option.text.lower().strip():
+                                select.select_by_visible_text(option.text)
+                                logger.info(f"    Selected (exact): {option.text}")
+                                found = True
+                                break
+
+                        # Try partial match if exact didn't work
+                        if not found:
                             for option in select.options:
                                 if player_name.lower() in option.text.lower():
                                     select.select_by_visible_text(option.text)
+                                    logger.info(f"    Selected (partial): {option.text}")
+                                    found = True
                                     break
+
+                        if not found:
+                            logger.warning(f"    Could not find '{player_name}' in dropdown options")
+
                         time.sleep(0.5)
-                        logger.info(f"    Selected: {player_name}")
                     else:
                         logger.warning(f"    Could not find name dropdown for player {i}")
 
@@ -1069,7 +1133,7 @@ class TeeTimer:
         """Main execution flow."""
         logger.info("=" * 60)
         logger.info("TeeTimer - Automated Tee Time Booking")
-        logger.info("The Hills Country Club")
+        logger.info("Acme Club Member Portal")
         logger.info("=" * 60)
         logger.info(f"Target: {self.config['booking']['target_date']} at {self.config['booking']['target_time']}")
         logger.info(f"Players: {self.config['booking']['num_players']}")
@@ -1150,7 +1214,7 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="TeeTimer - Automated Tee Time Booking for The Hills Country Club"
+        description="TeeTimer - Automated Tee Time Booking for Acme Club"
     )
     parser.add_argument(
         "-c", "--config",

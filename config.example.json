@@ -27,7 +27,7 @@
     ],
 
     "_comment_courses": "Courses to try, in order of preference",
-    "course_preference": ["Live Oak", "Yaupon"]
+    "course_preference": ["Course1", "Course2"]
   },
 
   "timing": {
@@ -48,7 +48,7 @@
   },
 
   "urls": {
-    "login": "https://members.invitedclubs.com/club/scripts/login/login.asp",
-    "tee_times_modal": "https://apps.invitedclubs.com/portal/pls/portal/!CCTTWEB.controller"
+    "login": "https://members.acme.com/club/scripts/login/login.asp",
+    "tee_times_modal": "https://apps.acme.com/portal/pls/portal/!CCTTWEB.controller"
   }
 }
