@@ -1,0 +1,54 @@
+{
+  "_comment": "TeeTimer Configuration - Copy this to config.json and fill in your details",
+
+  "credentials": {
+    "username": "your_username_here",
+    "password": "your_password_here"
+  },
+
+  "booking": {
+    "_comment_date": "Target date in YYYY-MM-DD format",
+    "target_date": "2026-03-15",
+
+    "_comment_time": "Target tee time in 24-hour format (07:30 = 7:30 AM)",
+    "target_time": "07:30",
+
+    "_comment_leeway": "How many hours after target_time to keep trying (default 2)",
+    "leeway_hours": 2,
+
+    "_comment_players": "Total number of players including yourself",
+    "num_players": 4,
+
+    "_comment_player_names": "Names of OTHER players (not you - you're auto-filled as Player 1)",
+    "players": [
+      "John Smith",
+      "Jane Doe",
+      "Bob Wilson"
+    ],
+
+    "_comment_courses": "Courses to try, in order of preference",
+    "course_preference": ["Live Oak", "Yaupon"]
+  },
+
+  "timing": {
+    "_comment_days": "How many days in advance tee times open (you said 6)",
+    "booking_opens_days_ahead": 6,
+
+    "_comment_start": "Start trying X minutes before tee times open",
+    "start_trying_minutes_before": 1,
+
+    "_comment_first_tee": "When first tee time is available (when booking opens)",
+    "first_tee_time": "07:30",
+
+    "_comment_retry": "How often to retry if booking fails",
+    "retry_interval_seconds": 5,
+
+    "_comment_max_retry": "Maximum time to keep retrying",
+    "max_retry_minutes": 10
+  },
+
+  "urls": {
+    "login": "https://members.invitedclubs.com/club/scripts/login/login.asp",
+    "tee_times_modal": "https://apps.invitedclubs.com/portal/pls/portal/!CCTTWEB.controller"
+  }
+}

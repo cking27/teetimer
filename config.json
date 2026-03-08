@@ -1,0 +1,27 @@
+{
+  "credentials": {
+    "username": "YOUR_USERNAME",
+    "password": "YOUR_PASSWORD"
+  },
+  "booking": {
+    "target_date": "2026-03-17",
+    "target_time": "07:30",
+    "leeway_hours": 2,
+    "num_players": 2,
+    "players": [
+      "Heather King"
+    ],
+    "course_preference": ["Live Oak", "Yaupon"]
+  },
+  "timing": {
+    "booking_opens_days_ahead": 9,
+    "start_trying_minutes_before": 1,
+    "first_tee_time": "07:30",
+    "retry_interval_seconds": 5,
+    "max_retry_minutes": 10
+  },
+  "urls": {
+    "login": "https://members.invitedclubs.com/club/scripts/login/login.asp",
+    "tee_times_modal": "https://apps.invitedclubs.com/portal/pls/portal/!CCTTWEB.controller"
+  }
+}

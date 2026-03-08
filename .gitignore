@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+.venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Local config with real credentials - create config.local.json for your actual credentials
+config.local.json
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
